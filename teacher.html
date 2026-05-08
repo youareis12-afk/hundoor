@@ -1,0 +1,749 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>أخذ الحضور</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html5-qrcode/2.3.8/html5-qrcode.min.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700;900&display=swap');
+
+  :root {
+    --bg: #0d1117;
+    --surface: #161b22;
+    --surface2: #1c2128;
+    --border: #30363d;
+    --green: #3fb950;
+    --green-dim: rgba(63,185,80,0.12);
+    --red: #f85149;
+    --red-dim: rgba(248,81,73,0.12);
+    --gold: #d29922;
+    --blue: #58a6ff;
+    --text: #e6edf3;
+    --muted: #7d8590;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Tajawal', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    padding: 20px 14px;
+  }
+
+  header {
+    max-width: 520px;
+    margin: 0 auto 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .header-title h1 { font-size: 22px; font-weight: 900; color: var(--text); }
+  .header-title p  { font-size: 12px; color: var(--muted); margin-top: 2px; }
+
+  .date-badge {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 6px 12px;
+    font-size: 12px;
+    color: var(--muted);
+    text-align: center;
+  }
+  .date-badge strong { display: block; color: var(--gold); font-size: 14px; }
+
+  .nav {
+    max-width: 520px;
+    margin: 0 auto 16px;
+    display: flex;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+  }
+
+  .nav-btn {
+    flex: 1;
+    padding: 11px 6px;
+    background: transparent;
+    border: none;
+    color: var(--muted);
+    font-family: 'Tajawal', sans-serif;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s;
+    border-left: 1px solid var(--border);
+  }
+  .nav-btn:last-child { border-left: none; }
+  .nav-btn.active { color: var(--text); background: var(--surface2); }
+
+  .main { max-width: 520px; margin: 0 auto; }
+  .pane { display: none; }
+  .pane.active { display: block; }
+
+  /* SCANNER */
+  .scanner-box {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    overflow: hidden;
+    margin-bottom: 16px;
+  }
+
+  .scanner-header {
+    padding: 14px 18px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .scanner-header .title    { font-weight: 700; font-size: 15px; }
+  .scanner-header .subtitle { font-size: 12px; color: var(--muted); margin-top: 2px; }
+
+  .scan-status {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px;
+    border-radius: 100px;
+    font-size: 12px;
+    font-weight: 700;
+  }
+  .scan-status.on  { background: var(--green-dim); color: var(--green); }
+  .scan-status.off { background: var(--red-dim);   color: var(--red);   }
+  .scan-status::before {
+    content: '';
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    background: currentColor;
+  }
+
+  #reader { width: 100%; min-height: 200px; }
+  #reader video { width: 100% !important; border-radius: 0; }
+
+  /* ─── طريقة رفع صورة الباركود ─── */
+  .upload-zone {
+    margin: 0 18px 18px;
+    border: 2px dashed var(--border);
+    border-radius: 10px;
+    padding: 18px 14px;
+    text-align: center;
+    cursor: pointer;
+    transition: border-color 0.2s, background 0.2s;
+    position: relative;
+  }
+  .upload-zone:hover { border-color: var(--blue); background: rgba(88,166,255,0.04); }
+  .upload-zone input[type=file] {
+    position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%;
+  }
+  .upload-zone .uz-icon { font-size: 28px; margin-bottom: 6px; }
+  .upload-zone .uz-text { font-size: 13px; color: var(--muted); }
+  .upload-zone .uz-text strong { color: var(--blue); }
+
+  .scan-controls {
+    padding: 14px 18px;
+    display: flex;
+    gap: 10px;
+  }
+
+  .btn {
+    flex: 1;
+    padding: 11px 14px;
+    border: none;
+    border-radius: 8px;
+    font-family: 'Tajawal', sans-serif;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: opacity 0.2s, transform 0.1s;
+  }
+  .btn:active { transform: scale(0.97); }
+  .btn-green { background: var(--green); color: #000; }
+  .btn-red   { background: var(--red);   color: #fff; }
+  .btn-dim   { background: var(--surface2); color: var(--muted); border: 1px solid var(--border); }
+  .btn-full  { width: 100%; }
+
+  /* تنبيه الأذونات */
+  .perm-alert {
+    display: none;
+    background: rgba(210,153,34,0.12);
+    border: 1px solid var(--gold);
+    border-radius: 10px;
+    padding: 12px 16px;
+    margin: 0 0 16px;
+    font-size: 13px;
+    color: var(--gold);
+    line-height: 1.7;
+  }
+  .perm-alert.show { display: block; }
+
+  /* TOAST */
+  .toast {
+    position: fixed;
+    top: 20px; left: 50%;
+    transform: translateX(-50%) translateY(-80px);
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 14px 20px;
+    text-align: center;
+    min-width: 260px;
+    z-index: 999;
+    transition: transform 0.35s cubic-bezier(.34,1.56,.64,1);
+    box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+  }
+  .toast.show { transform: translateX(-50%) translateY(0); }
+  .toast.success { border-color: var(--green); }
+  .toast.error   { border-color: var(--red);   }
+  .toast.warn    { border-color: var(--gold);  }
+  .toast .t-icon { font-size: 28px; margin-bottom: 4px; }
+  .toast .t-name { font-size: 17px; font-weight: 900; }
+  .toast .t-info { font-size: 12px; color: var(--muted); margin-top: 2px; }
+
+  /* SETUP */
+  .setup-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 20px 18px;
+    margin-bottom: 16px;
+  }
+  .setup-card h3 {
+    font-size: 14px; font-weight: 700; color: var(--muted);
+    text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 14px;
+  }
+  .field { margin-bottom: 14px; }
+  .field label {
+    display: block; font-size: 12px; color: var(--muted);
+    font-weight: 700; margin-bottom: 6px;
+    text-transform: uppercase; letter-spacing: 0.4px;
+  }
+  input[type=text], input[type=date] {
+    width: 100%; padding: 10px 13px;
+    background: var(--bg); border: 1px solid var(--border);
+    border-radius: 8px; color: var(--text);
+    font-family: 'Tajawal', sans-serif; font-size: 14px;
+    outline: none; transition: border-color 0.2s;
+  }
+  input:focus { border-color: var(--blue); }
+
+  /* STATS */
+  .stats-row {
+    display: grid; grid-template-columns: repeat(3, 1fr);
+    gap: 10px; margin-bottom: 16px;
+  }
+  .stat-card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 12px; padding: 14px 12px; text-align: center;
+  }
+  .stat-card .val { font-size: 26px; font-weight: 900; }
+  .stat-card .lbl { font-size: 11px; color: var(--muted); margin-top: 2px; }
+  .stat-card.green { border-color: rgba(63,185,80,0.4); }
+  .stat-card.green .val { color: var(--green); }
+  .stat-card.red   { border-color: rgba(248,81,73,0.3); }
+  .stat-card.red   .val { color: var(--red); }
+
+  /* ATTENDANCE LIST */
+  .att-list-header {
+    display: flex; align-items: center;
+    justify-content: space-between; margin-bottom: 12px;
+  }
+  .att-list-header h3 {
+    font-size: 14px; font-weight: 700; color: var(--muted);
+    text-transform: uppercase; letter-spacing: 0.5px;
+  }
+  .att-item {
+    display: flex; align-items: center;
+    justify-content: space-between;
+    padding: 11px 14px;
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 9px; margin-bottom: 8px; transition: border-color 0.2s;
+  }
+  .att-item.present { border-right: 3px solid var(--green); }
+  .att-item.absent  { border-right: 3px solid var(--red); opacity: 0.6; }
+  .att-item .att-name { font-weight: 700; font-size: 14px; }
+  .att-item .att-meta { font-size: 11px; color: var(--muted); margin-top: 2px; }
+  .att-badge {
+    display: inline-flex; align-items: center; gap: 4px;
+    padding: 3px 10px; border-radius: 100px;
+    font-size: 11px; font-weight: 700;
+  }
+  .att-badge.p { background: var(--green-dim); color: var(--green); }
+  .att-badge.a { background: var(--red-dim);   color: var(--red); }
+
+  .manual-entry {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 14px; padding: 16px 18px; margin-bottom: 16px;
+  }
+  .manual-entry h3 {
+    font-size: 13px; font-weight: 700; color: var(--muted);
+    text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 12px;
+  }
+  .manual-row { display: flex; gap: 10px; }
+
+  /* SESSIONS */
+  .session-item {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 10px; padding: 14px 16px; margin-bottom: 10px;
+  }
+  .session-item .s-title { font-weight: 700; font-size: 15px; }
+  .session-item .s-meta  { font-size: 12px; color: var(--muted); margin-top: 2px; }
+  .session-item .s-bar {
+    display: flex; height: 6px; border-radius: 3px;
+    overflow: hidden; margin-top: 10px; background: var(--border);
+  }
+  .session-item .s-bar .fill { background: var(--green); transition: width 0.5s; }
+  .session-item .s-footer {
+    display: flex; align-items: center;
+    justify-content: space-between; margin-top: 8px;
+  }
+  .session-item .s-counts { font-size: 12px; color: var(--muted); }
+  .session-item .s-export {
+    background: none; border: 1px solid var(--border);
+    border-radius: 6px; color: var(--muted);
+    padding: 4px 10px; font-family: 'Tajawal', sans-serif;
+    font-size: 12px; cursor: pointer;
+    transition: color 0.2s, border-color 0.2s;
+  }
+  .session-item .s-export:hover { color: var(--text); border-color: var(--text); }
+
+  .empty { text-align: center; padding: 40px 0; color: var(--muted); }
+  .empty .e-icon { font-size: 38px; margin-bottom: 10px; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-title">
+    <h1>📡 الحضور</h1>
+    <p>نظام متابعة الطلاب</p>
+  </div>
+  <div class="date-badge">
+    <strong id="today-date">—</strong>
+    <span id="today-day">—</span>
+  </div>
+</header>
+
+<div class="nav">
+  <button class="nav-btn active" onclick="switchPane('scan', event)">📷 مسح</button>
+  <button class="nav-btn" onclick="switchPane('attendance', event)">📋 الحضور</button>
+  <button class="nav-btn" onclick="switchPane('sessions', event)">🗂 السجلات</button>
+</div>
+
+<div class="main">
+
+  <!-- PANE: SCAN -->
+  <div class="pane active" id="pane-scan">
+
+    <div class="setup-card">
+      <h3>⚙️ إعداد الحصة</h3>
+      <div class="field">
+        <label>اسم الحصة / المادة</label>
+        <input type="text" id="session-name" placeholder="مثال: الرياضيات - الفصل الأول">
+      </div>
+      <div class="field">
+        <label>التاريخ</label>
+        <input type="date" id="session-date">
+      </div>
+    </div>
+
+    <!-- تنبيه عند رفض الكاميرا -->
+    <div class="perm-alert" id="perm-alert">
+      ⚠️ <strong>الكاميرا غير متاحة.</strong><br>
+      المتصفح يحتاج HTTPS لفتح الكاميرا. يمكنك بدلاً من ذلك استخدام زر
+      <strong>"رفع صورة باركود"</strong> أدناه لقراءة الباركود من صورة.
+    </div>
+
+    <div class="scanner-box">
+      <div class="scanner-header">
+        <div>
+          <div class="title">📷 مسح الباركود</div>
+          <div class="subtitle">وجّه الكاميرا على QR code الطالب</div>
+        </div>
+        <div class="scan-status off" id="scan-indicator">متوقف</div>
+      </div>
+      <div id="reader"></div>
+      <div class="scan-controls">
+        <button class="btn btn-green" onclick="startScan()">▶ تشغيل الكاميرا</button>
+        <button class="btn btn-red"   onclick="stopScan()">⏹ إيقاف</button>
+      </div>
+    </div>
+
+    <!-- ── البديل: رفع صورة الباركود ── -->
+    <div class="scanner-box" style="margin-bottom:16px">
+      <div class="scanner-header">
+        <div>
+          <div class="title">🖼 رفع صورة الباركود</div>
+          <div class="subtitle">إذا الكاميرا ما تشتغل — ارفع صورة QR مباشرة</div>
+        </div>
+      </div>
+      <div class="upload-zone" id="upload-zone">
+        <input type="file" id="qr-file-input" accept="image/*" onchange="handleImageUpload(event)">
+        <div class="uz-icon">📂</div>
+        <div class="uz-text">اضغط هنا أو اسحب صورة الباركود<br><strong>يقرأ الباركود بدون كاميرا</strong></div>
+      </div>
+      <div id="upload-preview" style="padding:0 18px 14px;display:none">
+        <img id="preview-img" style="max-width:100%;border-radius:8px;opacity:0.7" alt="">
+        <div id="upload-result" style="margin-top:8px;font-size:13px;color:var(--muted);text-align:center"></div>
+      </div>
+    </div>
+
+    <div class="manual-entry">
+      <h3>✏️ إدخال يدوي</h3>
+      <div class="manual-row">
+        <input type="text" id="manual-id" placeholder="رقم الطالب...">
+        <button class="btn btn-dim" style="flex:0;white-space:nowrap" onclick="manualAttend()">تسجيل</button>
+      </div>
+    </div>
+
+    <div class="stats-row">
+      <div class="stat-card green">
+        <div class="val" id="s-present">0</div>
+        <div class="lbl">حاضر</div>
+      </div>
+      <div class="stat-card red">
+        <div class="val" id="s-absent">0</div>
+        <div class="lbl">غائب</div>
+      </div>
+      <div class="stat-card">
+        <div class="val" id="s-total">0</div>
+        <div class="lbl">مجموع</div>
+      </div>
+    </div>
+
+    <button class="btn btn-green btn-full" onclick="saveSession()">💾 حفظ الحصة</button>
+  </div>
+
+  <!-- PANE: ATTENDANCE -->
+  <div class="pane" id="pane-attendance">
+    <div class="att-list-header">
+      <h3>سجل الحضور الحالي</h3>
+      <button class="btn btn-dim" style="padding:6px 12px;font-size:12px;flex:unset" onclick="clearAttendance()">🗑 مسح</button>
+    </div>
+    <div id="att-list"></div>
+  </div>
+
+  <!-- PANE: SESSIONS -->
+  <div class="pane" id="pane-sessions">
+    <div class="att-list-header">
+      <h3>سجلات الحصص السابقة</h3>
+    </div>
+    <div id="sessions-list"></div>
+  </div>
+
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast">
+  <div class="t-icon" id="t-icon">✅</div>
+  <div class="t-name" id="t-name">—</div>
+  <div class="t-info" id="t-info">—</div>
+</div>
+
+<script>
+// ─── State ───────────────────────────────────────────────
+let attendance = {};
+let scanner    = null;
+let scanning   = false;
+let students   = JSON.parse(localStorage.getItem('students') || '[]');
+let sessions   = JSON.parse(localStorage.getItem('sessions') || '[]');
+
+// ─── Init date ───────────────────────────────────────────
+(function() {
+  const now  = new Date();
+  const days = ['الأحد','الإثنين','الثلاثاء','الأربعاء','الخميس','الجمعة','السبت'];
+  document.getElementById('today-date').textContent = now.toLocaleDateString('ar-IQ');
+  document.getElementById('today-day').textContent  = days[now.getDay()];
+  document.getElementById('session-date').value     = now.toISOString().split('T')[0];
+})();
+
+// ─── Navigation ──────────────────────────────────────────
+function switchPane(name, event) {
+  document.querySelectorAll('.pane').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('pane-' + name).classList.add('active');
+  if (event && event.target) event.target.classList.add('active');
+  if (name === 'attendance') renderAttendance();
+  if (name === 'sessions')   renderSessions();
+}
+
+// ─── Camera Scanner ──────────────────────────────────────
+async function startScan() {
+  if (scanning) return;
+
+  // طلب الإذن صراحةً أولاً لنعطي رسالة واضحة عند الرفض
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+    stream.getTracks().forEach(t => t.stop()); // نوقف مؤقتاً، Html5Qrcode سيفتح من جديد
+  } catch (permErr) {
+    document.getElementById('perm-alert').classList.add('show');
+    showToast('⚠️', 'الكاميرا غير متاحة', 'استخدم زر رفع الصورة بدلاً من ذلك', 'warn');
+    return;
+  }
+
+  try {
+    scanner = new Html5Qrcode("reader");
+    await scanner.start(
+      { facingMode: "environment" },
+      { fps: 10, qrbox: { width: 230, height: 230 } },
+      onScan,
+      () => {}
+    );
+    scanning = true;
+    setIndicator(true);
+    document.getElementById('perm-alert').classList.remove('show');
+  } catch (err) {
+    document.getElementById('perm-alert').classList.add('show');
+    showToast('⚠️', 'خطأ في الكاميرا', err.message || 'تحقق من الأذونات', 'warn');
+  }
+}
+
+async function stopScan() {
+  if (!scanning || !scanner) return;
+  try { await scanner.stop(); } catch(e) {}
+  scanning = false;
+  setIndicator(false);
+}
+
+function setIndicator(on) {
+  const el = document.getElementById('scan-indicator');
+  el.textContent = on ? 'يعمل' : 'متوقف';
+  el.className   = 'scan-status ' + (on ? 'on' : 'off');
+}
+
+// ─── Image Upload QR Reader ──────────────────────────────
+function handleImageUpload(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    const previewEl = document.getElementById('upload-preview');
+    const imgEl     = document.getElementById('preview-img');
+    const resultEl  = document.getElementById('upload-result');
+
+    imgEl.src = e.target.result;
+    previewEl.style.display = 'block';
+    resultEl.textContent = '🔍 جاري قراءة الباركود...';
+    resultEl.style.color = 'var(--muted)';
+
+    // استخدام Html5Qrcode لقراءة الصورة
+    Html5Qrcode.scanFile(file, true)
+      .then(decodedText => {
+        resultEl.textContent = '✅ تم قراءة الباركود بنجاح';
+        resultEl.style.color = 'var(--green)';
+        onScan(decodedText);
+        // مسح الـ input لإتاحة رفع نفس الصورة مرة ثانية
+        event.target.value = '';
+      })
+      .catch(err => {
+        resultEl.textContent = '❌ لم يُتعرف على الباركود، حاول بصورة أوضح';
+        resultEl.style.color = 'var(--red)';
+        console.warn('QR scan error:', err);
+      });
+  };
+  reader.readAsDataURL(file);
+}
+
+// ─── On QR Decoded ───────────────────────────────────────
+function onScan(data) {
+  let student;
+  try {
+    student = JSON.parse(data);
+  } catch {
+    student = { id: data, name: data };
+  }
+
+  const id = student.id || student;
+  if (!id) return;
+
+  if (attendance[id]) {
+    showToast('⚠️', student.name || id, 'تم تسجيل حضوره مسبقاً', 'warn');
+    return;
+  }
+
+  markPresent(id, student.name || id, student.class || '', student.subject || '', true);
+}
+
+// ─── Manual Attend ───────────────────────────────────────
+function manualAttend() {
+  const id = document.getElementById('manual-id').value.trim();
+  if (!id) return;
+
+  if (attendance[id]) {
+    showToast('⚠️', id, 'مسجل مسبقاً', 'warn');
+    return;
+  }
+
+  const stu = students.find(s => s.id === id);
+  markPresent(id,
+    stu ? stu.name : id,
+    stu ? (stu.class || '') : '',
+    stu ? (stu.subject || '') : '',
+    false
+  );
+  document.getElementById('manual-id').value = '';
+}
+
+// ─── Mark Present ────────────────────────────────────────
+function markPresent(id, name, cls, subject, fromScan) {
+  attendance[id] = {
+    id, name,
+    class: cls,
+    subject: subject,
+    time: new Date().toLocaleTimeString('ar-IQ'),
+    present: true
+  };
+  updateStats();
+  showToast('✅', name,
+    `${cls ? cls + ' • ' : ''}حضور مسجل ${fromScan ? '(QR)' : '(يدوي)'} ${new Date().toLocaleTimeString('ar-IQ')}`,
+    'success'
+  );
+}
+
+// ─── Stats ───────────────────────────────────────────────
+function updateStats() {
+  const present = Object.values(attendance).filter(a => a.present).length;
+  const total   = students.length;
+  document.getElementById('s-present').textContent = present;
+  document.getElementById('s-absent').textContent  = Math.max(0, total - present);
+  document.getElementById('s-total').textContent   = total || present;
+}
+
+function clearAttendance() {
+  if (!confirm('مسح سجل الحضور الحالي؟')) return;
+  attendance = {};
+  updateStats();
+  renderAttendance();
+}
+
+// ─── Save Session ────────────────────────────────────────
+function saveSession() {
+  const name    = document.getElementById('session-name').value.trim() || 'حصة بدون اسم';
+  const date    = document.getElementById('session-date').value;
+  const present = Object.values(attendance).filter(a => a.present);
+
+  if (!present.length) {
+    showToast('⚠️', 'لا يوجد حضور', 'سجّل حضور الطلاب أولاً', 'warn');
+    return;
+  }
+
+  sessions.unshift({
+    id: Date.now(), name, date,
+    records: Object.values(attendance),
+    total: students.length || present.length
+  });
+  localStorage.setItem('sessions', JSON.stringify(sessions));
+  showToast('💾', 'تم الحفظ', `${name} - ${present.length} طالب`, 'success');
+}
+
+// ─── Render Attendance ───────────────────────────────────
+function renderAttendance() {
+  const el      = document.getElementById('att-list');
+  const records = Object.values(attendance);
+
+  if (!records.length) {
+    el.innerHTML = `<div class="empty"><div class="e-icon">📭</div><p>لا يوجد سجل حضور بعد<br>ابدأ بمسح QR code الطلاب</p></div>`;
+    return;
+  }
+
+  const presentIds    = new Set(records.map(r => r.id));
+  const absentStudents = students.filter(s => !presentIds.has(s.id));
+
+  el.innerHTML =
+    records.map(r => `
+      <div class="att-item present">
+        <div>
+          <div class="att-name">${r.name}</div>
+          <div class="att-meta">${r.id}${r.class ? ' • ' + r.class : ''}${r.subject ? ' • ' + r.subject : ''} • ${r.time}</div>
+        </div>
+        <span class="att-badge p">✔ حاضر</span>
+      </div>
+    `).join('') +
+    absentStudents.map(s => `
+      <div class="att-item absent">
+        <div>
+          <div class="att-name">${s.name}</div>
+          <div class="att-meta">${s.id}${s.class ? ' • ' + s.class : ''}${s.subject ? ' • ' + s.subject : ''}</div>
+        </div>
+        <span class="att-badge a">✗ غائب</span>
+      </div>
+    `).join('');
+}
+
+// ─── Render Sessions ─────────────────────────────────────
+function renderSessions() {
+  const el = document.getElementById('sessions-list');
+  if (!sessions.length) {
+    el.innerHTML = `<div class="empty"><div class="e-icon">🗂</div><p>لا توجد حصص محفوظة بعد</p></div>`;
+    return;
+  }
+
+  el.innerHTML = sessions.map((s, i) => {
+    const present = s.records.filter(r => r.present).length;
+    const pct     = s.total ? Math.round(present / s.total * 100) : 0;
+    return `
+      <div class="session-item">
+        <div class="s-title">${s.name}</div>
+        <div class="s-meta">${s.date}</div>
+        <div class="s-bar"><div class="fill" style="width:${pct}%"></div></div>
+        <div class="s-footer">
+          <span class="s-counts">حاضر: ${present} من ${s.total} (${pct}%)</span>
+          <button class="s-export" onclick="exportSession(${i})">📤 تصدير</button>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+// ─── Export Session ──────────────────────────────────────
+function exportSession(i) {
+  const s       = sessions[i];
+  const present = s.records.filter(r => r.present);
+  const presentIds = new Set(present.map(r => r.id));
+  const absentList = (JSON.parse(localStorage.getItem('students') || '[]')).filter(st => !presentIds.has(st.id));
+
+  let text = `📋 كشف حضور\n`;
+  text += `الحصة: ${s.name}\n`;
+  text += `التاريخ: ${s.date}\n`;
+  text += `━━━━━━━━━━━━━━━━\n\n`;
+  text += `✅ الحاضرون (${present.length}):\n`;
+  present.forEach((r, n) => {
+    text += `${n+1}. ${r.name} (${r.id})${r.class ? ' - ' + r.class : ''}${r.subject ? ' - ' + r.subject : ''} - ${r.time}\n`;
+  });
+  if (absentList.length) {
+    text += `\n❌ الغائبون (${absentList.length}):\n`;
+    absentList.forEach((r, n) => {
+      text += `${n+1}. ${r.name} (${r.id})\n`;
+    });
+  }
+
+  const blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href     = url;
+  a.download = `حضور-${s.name}-${s.date}.txt`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+// ─── Toast ───────────────────────────────────────────────
+let toastTimer;
+function showToast(icon, name, info, type) {
+  const el = document.getElementById('toast');
+  document.getElementById('t-icon').textContent = icon;
+  document.getElementById('t-name').textContent = name;
+  document.getElementById('t-info').textContent = info;
+  el.className = `toast show ${type}`;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => { el.className = 'toast'; }, 2800);
+}
+
+updateStats();
+</script>
+</body>
+</html>
