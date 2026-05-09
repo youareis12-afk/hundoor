@@ -1,0 +1,453 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>نظام الحضور</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html5-qrcode/2.3.8/html5-qrcode.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700;900&display=swap');
+:root{--bg:#0d1117;--surface:#161b22;--surface2:#1c2128;--border:#30363d;--green:#3fb950;--green-dim:rgba(63,185,80,0.12);--red:#f85149;--red-dim:rgba(248,81,73,0.12);--gold:#d29922;--blue:#58a6ff;--text:#e6edf3;--muted:#7d8590}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Tajawal',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;padding:20px 14px}
+#login-screen{max-width:380px;margin:60px auto;background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:32px 24px;text-align:center}
+#login-screen .icon{font-size:44px;margin-bottom:10px}
+#login-screen h2{font-size:20px;font-weight:900;margin-bottom:6px}
+#login-screen p{font-size:13px;color:var(--muted);margin-bottom:24px}
+.lf{margin-bottom:14px;text-align:right}
+.lf label{display:block;font-size:11px;color:var(--muted);font-weight:700;margin-bottom:5px;text-transform:uppercase;letter-spacing:.4px}
+.lf input,.lf select{width:100%;padding:11px 13px;background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:'Tajawal',sans-serif;font-size:14px;outline:none}
+.lf input:focus,.lf select:focus{border-color:var(--blue)}
+.lf select option{background:var(--bg)}
+#login-err{color:var(--red);font-size:13px;margin-bottom:10px;min-height:16px}
+header{max-width:540px;margin:0 auto 18px;display:flex;align-items:center;justify-content:space-between}
+.h-title h1{font-size:20px;font-weight:900}
+.h-title p{font-size:11px;color:var(--muted);margin-top:2px}
+.h-right{display:flex;gap:8px;align-items:center}
+.date-badge{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:5px 10px;font-size:11px;color:var(--muted);text-align:center}
+.date-badge strong{display:block;color:var(--gold);font-size:13px}
+.logout-btn{background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:6px 12px;color:var(--muted);font-family:'Tajawal',sans-serif;font-size:12px;font-weight:700;cursor:pointer}
+.nav{max-width:540px;margin:0 auto 16px;display:flex;background:var(--surface);border:1px solid var(--border);border-radius:10px;overflow:hidden}
+.nav-btn{flex:1;padding:11px 4px;background:transparent;border:none;color:var(--muted);font-family:'Tajawal',sans-serif;font-size:12px;font-weight:700;cursor:pointer;transition:all .2s;border-left:1px solid var(--border)}
+.nav-btn:last-child{border-left:none}
+.nav-btn.active{color:var(--text);background:var(--surface2)}
+.main{max-width:540px;margin:0 auto}
+.pane{display:none}.pane.active{display:block}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:14px;overflow:hidden;margin-bottom:14px}
+.card-header{padding:14px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.card-header .ct{font-weight:700;font-size:15px}
+.card-header .cs{font-size:12px;color:var(--muted);margin-top:2px}
+.card-body{padding:16px 18px}
+.field{margin-bottom:13px}
+.field label{display:block;font-size:11px;color:var(--muted);font-weight:700;margin-bottom:5px;text-transform:uppercase;letter-spacing:.4px}
+input[type=text],input[type=date],select{width:100%;padding:10px 13px;background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:'Tajawal',sans-serif;font-size:14px;outline:none;transition:border-color .2s}
+input:focus,select:focus{border-color:var(--blue)}
+select option{background:var(--bg)}
+.scan-status{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:100px;font-size:12px;font-weight:700}
+.scan-status.on{background:var(--green-dim);color:var(--green)}
+.scan-status.off{background:var(--red-dim);color:var(--red)}
+.scan-status::before{content:'';width:7px;height:7px;border-radius:50%;background:currentColor}
+#reader{width:100%}
+#reader video{width:100%!important}
+.btn{padding:11px 14px;border:none;border-radius:8px;font-family:'Tajawal',sans-serif;font-size:14px;font-weight:700;cursor:pointer;transition:all .2s}
+.btn:active{transform:scale(.97)}
+.btn-green{background:var(--green);color:#000}
+.btn-red{background:var(--red);color:#fff}
+.btn-dim{background:var(--surface2);color:var(--muted);border:1px solid var(--border)}
+.btn-full{width:100%}
+.btn-row{display:flex;gap:10px}
+.btn-row .btn{flex:1}
+.stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:14px}
+.stat-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:12px 8px;text-align:center}
+.stat-card .val{font-size:22px;font-weight:900}
+.stat-card .lbl{font-size:10px;color:var(--muted);margin-top:2px}
+.stat-card.green{border-color:rgba(63,185,80,.4)}.stat-card.green .val{color:var(--green)}
+.stat-card.red{border-color:rgba(248,81,73,.3)}.stat-card.red .val{color:var(--red)}
+.stat-card.gold{border-color:rgba(210,153,34,.4)}.stat-card.gold .val{color:var(--gold)}
+.prog-wrap{background:var(--border);border-radius:6px;height:10px;margin-bottom:6px;overflow:hidden}
+.prog-bar{height:100%;border-radius:6px;transition:width .5s;background:linear-gradient(90deg,var(--green),#4ade80)}
+.prog-label{font-size:12px;color:var(--muted);text-align:center}
+.att-item{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:var(--surface);border:1px solid var(--border);border-radius:9px;margin-bottom:7px}
+.att-item.present{border-right:3px solid var(--green)}
+.att-item.absent{border-right:3px solid var(--red);opacity:.55}
+.att-item .an{font-weight:700;font-size:14px}
+.att-item .am{font-size:11px;color:var(--muted);margin-top:2px}
+.badge{display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border-radius:100px;font-size:11px;font-weight:700}
+.badge-p{background:var(--green-dim);color:var(--green)}
+.badge-a{background:var(--red-dim);color:var(--red)}
+.ses-item{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px 16px;margin-bottom:10px}
+.ses-item .st{font-weight:700;font-size:15px}
+.ses-item .sm{font-size:12px;color:var(--muted);margin-top:2px}
+.ses-bar{height:6px;border-radius:3px;background:var(--border);margin-top:10px;overflow:hidden}
+.ses-bar .fill{height:100%;background:var(--green)}
+.ses-footer{display:flex;align-items:center;justify-content:space-between;margin-top:8px;gap:8px}
+.toast{position:fixed;top:20px;left:50%;transform:translateX(-50%) translateY(-80px);background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:14px 20px;text-align:center;min-width:260px;z-index:999;transition:transform .35s cubic-bezier(.34,1.56,.64,1);box-shadow:0 8px 32px rgba(0,0,0,.4)}
+.toast.show{transform:translateX(-50%) translateY(0)}
+.toast.success{border-color:var(--green)}.toast.error{border-color:var(--red)}.toast.warn{border-color:var(--gold)}
+.toast .ti{font-size:26px;margin-bottom:4px}
+.toast .tn{font-size:16px;font-weight:900}
+.toast .tm{font-size:11px;color:var(--muted);margin-top:2px}
+.empty{text-align:center;padding:36px;color:var(--muted);font-size:13px}
+.empty .ei{font-size:36px;margin-bottom:10px}
+.teacher-info{background:rgba(88,166,255,.08);border:1px solid rgba(88,166,255,.25);border-radius:8px;padding:8px 14px;font-size:12px;color:var(--blue);margin-bottom:14px}
+</style>
+</head>
+<body>
+
+<div id="login-screen">
+  <div class="icon">📡</div>
+  <h2>نظام الحضور الجامعي</h2>
+  <p>سجّل دخولك لبدء أخذ الحضور</p>
+  <div class="lf"><label>اسمك الكامل</label><input type="text" id="l-name" placeholder="د. أحمد محمد"></div>
+  <div class="lf"><label>القسم</label><select id="l-dept"><option value="">-- اختر القسم --</option></select></div>
+  <div id="login-err"></div>
+  <button class="btn btn-green btn-full" onclick="doLogin()">دخول ▶</button>
+</div>
+
+<div id="app" style="display:none">
+<header>
+  <div class="h-title"><h1>📡 الحضور</h1><p id="teacher-sub">—</p></div>
+  <div class="h-right">
+    <div class="date-badge"><strong id="today-date">—</strong><span id="today-day">—</span></div>
+    <button class="logout-btn" onclick="doLogout()">خروج</button>
+  </div>
+</header>
+<div class="nav">
+  <button class="nav-btn active" onclick="sw('scan',this)">📷 مسح</button>
+  <button class="nav-btn" onclick="sw('attendance',this)">📋 الحضور</button>
+  <button class="nav-btn" onclick="sw('sessions',this)">🗂 السجلات</button>
+</div>
+<div class="main">
+
+  <div class="pane active" id="pane-scan">
+    <div class="teacher-info" id="teacher-info">👤 —</div>
+    <div class="card">
+      <div class="card-header"><div><div class="ct">⚙️ إعداد الحصة</div></div></div>
+      <div class="card-body">
+        <div class="field"><label>المادة</label>
+          <select id="ses-subject" onchange="loadEnrolled()"><option value="">-- اختر المادة --</option></select>
+        </div>
+        <div class="field"><label>التاريخ</label><input type="date" id="ses-date"></div>
+        <div id="enrolled-info" style="font-size:12px;color:var(--muted);margin-top:4px"></div>
+      </div>
+    </div>
+    <div class="stats-grid">
+      <div class="stat-card"><div class="val" id="s-enrolled">0</div><div class="lbl">مسجلون</div></div>
+      <div class="stat-card green"><div class="val" id="s-present">0</div><div class="lbl">حاضر</div></div>
+      <div class="stat-card red"><div class="val" id="s-absent">0</div><div class="lbl">غائب</div></div>
+      <div class="stat-card gold"><div class="val" id="s-pct">0%</div><div class="lbl">النسبة</div></div>
+    </div>
+    <div class="card" style="margin-bottom:14px">
+      <div class="card-body" style="padding:12px 16px">
+        <div class="prog-wrap"><div class="prog-bar" id="prog-bar" style="width:0%"></div></div>
+        <div class="prog-label" id="prog-label">لم يبدأ الحضور بعد</div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-header">
+        <div><div class="ct">📷 مسح الباركود</div><div class="cs">وجّه الكاميرا على QR code الطالب</div></div>
+        <div class="scan-status off" id="scan-ind">متوقف</div>
+      </div>
+      <div id="reader"></div>
+      <div class="card-body">
+        <div class="btn-row">
+          <button class="btn btn-green" onclick="startScan()">▶ تشغيل</button>
+          <button class="btn btn-red" onclick="stopScan()">⏹ إيقاف</button>
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-header"><div class="ct">✏️ إدخال يدوي</div></div>
+      <div class="card-body">
+        <div class="btn-row">
+          <input type="text" id="manual-id" placeholder="الرقم الجامعي للطالب...">
+          <button class="btn btn-dim" style="flex:0;white-space:nowrap" onclick="manualAttend()">تسجيل</button>
+        </div>
+      </div>
+    </div>
+    <div class="btn-row" style="margin-bottom:8px">
+      <button class="btn btn-green" style="flex:2" onclick="saveSession()">💾 حفظ الحصة على السيرفر</button>
+      <button class="btn btn-dim" style="flex:1" onclick="clearAttendance()">🗑 مسح</button>
+    </div>
+  </div>
+
+  <div class="pane" id="pane-attendance">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+      <div style="font-size:13px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px">سجل الحضور الحالي</div>
+      <button class="btn btn-dim" style="padding:6px 12px;font-size:12px" onclick="exportCurrentExcel()">📊 Excel</button>
+    </div>
+    <div id="att-list"></div>
+  </div>
+
+  <div class="pane" id="pane-sessions">
+    <div style="font-size:13px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:12px">سجلاتي المحفوظة</div>
+    <div id="ses-list"></div>
+  </div>
+
+</div>
+</div>
+
+<div class="toast" id="toast">
+  <div class="ti" id="ti">✅</div>
+  <div class="tn" id="tn">—</div>
+  <div class="tm" id="tm">—</div>
+</div>
+
+<script type="module">
+import{initializeApp}from"https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import{getFirestore,collection,addDoc,getDocs,query,where,Timestamp}from"https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+const cfg={apiKey:"AIzaSyAIejJylMFIpsI4E4x8i_nv5KUVmdc5IMY",authDomain:"hudoor-uni.firebaseapp.com",projectId:"hudoor-uni",storageBucket:"hudoor-uni.firebasestorage.app",messagingSenderId:"847527072323",appId:"1:847527072323:web:f90ec5ec5d07de5d3b3af6"};
+const app=initializeApp(cfg);const db=getFirestore(app);
+window._db=db;window._col=(n)=>collection(db,n);window._addDoc=addDoc;window._getDocs=getDocs;window._query=query;window._where=where;window._Timestamp=Timestamp;
+window.dispatchEvent(new Event('fb-ready'));
+</script>
+
+<script>
+let teacher=null,scanner=null,scanning=false;
+let attendance={},enrolledStudents=[],sessions=[],depts=[],subjects=[];
+
+(function(){
+  const now=new Date();
+  const days=['الأحد','الإثنين','الثلاثاء','الأربعاء','الخميس','الجمعة','السبت'];
+  document.getElementById('today-date').textContent=now.toLocaleDateString('ar-IQ');
+  document.getElementById('today-day').textContent=days[now.getDay()];
+  document.getElementById('ses-date').value=now.toISOString().split('T')[0];
+})();
+
+window.addEventListener('fb-ready',initApp);
+
+async function initApp(){
+  await loadDepts();
+  const saved=localStorage.getItem('teacherSession');
+  if(saved){const t=JSON.parse(saved);document.getElementById('l-name').value=t.name;document.getElementById('l-dept').value=t.dept;}
+}
+
+async function loadDepts(){
+  if(!window._db)return;
+  const snap=await window._getDocs(window._col('depts'));
+  depts=[];snap.forEach(d=>depts.push({id:d.id,...d.data()}));
+  depts.sort((a,b)=>a.name.localeCompare(b.name,'ar'));
+  const sel=document.getElementById('l-dept');
+  depts.forEach(d=>{const o=document.createElement('option');o.value=d.name;o.textContent=d.name;sel.appendChild(o);});
+}
+
+async function doLogin(){
+  const name=document.getElementById('l-name').value.trim();
+  const dept=document.getElementById('l-dept').value;
+  if(!name||!dept){document.getElementById('login-err').textContent='أدخل الاسم واختر القسم';return;}
+  teacher={name,dept};
+  localStorage.setItem('teacherSession',JSON.stringify(teacher));
+  document.getElementById('login-screen').style.display='none';
+  document.getElementById('app').style.display='block';
+  document.getElementById('teacher-sub').textContent=name+' — '+dept;
+  document.getElementById('teacher-info').textContent='👤 '+name+' | '+dept;
+  await loadSubjectsForTeacher();
+  await loadMySessions();
+}
+
+function doLogout(){
+  teacher=null;attendance={};enrolledStudents=[];sessions=[];
+  stopScan();
+  document.getElementById('login-screen').style.display='block';
+  document.getElementById('app').style.display='none';
+}
+
+async function loadSubjectsForTeacher(){
+  if(!window._db||!teacher)return;
+  const snap=await window._getDocs(window._col('subjects'));
+  subjects=[];
+  snap.forEach(d=>{const s={id:d.id,...d.data()};if(s.dept===teacher.dept)subjects.push(s);});
+  const sel=document.getElementById('ses-subject');
+  sel.innerHTML='<option value="">-- اختر المادة --</option>';
+  subjects.forEach(s=>{const o=document.createElement('option');o.value=s.name;o.textContent=s.name+(s.stage?' ('+s.stage+')':'');sel.appendChild(o);});
+}
+
+async function loadEnrolled(){
+  const subj=document.getElementById('ses-subject').value;
+  if(!subj||!window._db){enrolledStudents=[];updateStats();return;}
+  document.getElementById('enrolled-info').textContent='⏳ جاري تحميل قائمة الطلاب...';
+  const snap=await window._getDocs(window._col('students'));
+  enrolledStudents=[];
+  snap.forEach(d=>{const s={id:d.id,...d.data()};if(s.dept===teacher.dept&&(s.subjects||[]).includes(subj))enrolledStudents.push(s);});
+  document.getElementById('enrolled-info').textContent='✅ عدد الطلاب المسجلين: '+enrolledStudents.length+' طالب';
+  updateStats();
+}
+
+function sw(name,btn){
+  document.querySelectorAll('.pane').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('pane-'+name).classList.add('active');
+  btn.classList.add('active');
+  if(name==='attendance')renderAttendance();
+  if(name==='sessions')renderSessions();
+}
+
+async function startScan(){
+  if(scanning)return;
+  try{const s=await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'}});s.getTracks().forEach(t=>t.stop());}
+  catch{showToast('⚠️','الكاميرا غير متاحة','تأكد من إعطاء الإذن','warn');return;}
+  try{
+    scanner=new Html5Qrcode("reader");
+    await scanner.start({facingMode:"environment"},{fps:10,qrbox:{width:230,height:230}},onScan,()=>{});
+    scanning=true;setInd(true);
+  }catch(e){showToast('⚠️','خطأ',e.message,'warn');}
+}
+
+async function stopScan(){
+  if(!scanning||!scanner)return;
+  try{await scanner.stop();}catch(e){}
+  scanning=false;setInd(false);
+}
+
+function setInd(on){
+  const el=document.getElementById('scan-ind');
+  el.textContent=on?'يعمل':'متوقف';
+  el.className='scan-status '+(on?'on':'off');
+}
+
+function onScan(data){
+  let student;
+  try{student=JSON.parse(data);}catch{student={id:data,name:data,dept:'',stage:'',subjects:[]};}
+  const id=student.id||student.studentId;
+  if(!id)return;
+  if(attendance[id]){showToast('⚠️',student.name||id,'تم تسجيل حضوره مسبقاً','warn');return;}
+  markPresent(id,student.name||id,student.dept||'',student.stage||'',student.subjects||[],true);
+}
+
+async function manualAttend(){
+  const id=document.getElementById('manual-id').value.trim();
+  if(!id)return;
+  if(attendance[id]){showToast('⚠️',id,'مسجل مسبقاً','warn');return;}
+  const stu=enrolledStudents.find(s=>s.studentId===id);
+  if(stu)markPresent(id,stu.name,stu.dept||'',stu.stage||'',stu.subjects||[],false);
+  else markPresent(id,id,'','','',false);
+  document.getElementById('manual-id').value='';
+}
+
+function markPresent(id,name,dept,stage,subjs,fromQR){
+  attendance[id]={id,name,dept,stage,
+    subjects:Array.isArray(subjs)?subjs.join(' - '):(subjs||''),
+    time:new Date().toLocaleTimeString('ar-IQ'),present:true};
+  updateStats();
+  showToast('✅',name,(stage?stage+' • ':'')+(fromQR?'QR':'يدوي')+' • '+attendance[id].time,'success');
+}
+
+function updateStats(){
+  const present=Object.values(attendance).filter(a=>a.present);
+  const total=enrolledStudents.length||present.length;
+  const pct=total?Math.round(present.length/total*100):0;
+  document.getElementById('s-enrolled').textContent=total;
+  document.getElementById('s-present').textContent=present.length;
+  document.getElementById('s-absent').textContent=Math.max(0,total-present.length);
+  document.getElementById('s-pct').textContent=pct+'%';
+  document.getElementById('prog-bar').style.width=pct+'%';
+  document.getElementById('prog-label').textContent=total?present.length+' حاضر من '+total+' — '+pct+'% نسبة الحضور':'لم يبدأ الحضور بعد';
+}
+
+function clearAttendance(){
+  if(!confirm('مسح سجل الحضور الحالي؟'))return;
+  attendance={};updateStats();renderAttendance();
+}
+
+async function saveSession(){
+  if(!window._db){showToast('⚠️','Firebase','جاري التحميل...','warn');return;}
+  const subj=document.getElementById('ses-subject').value;
+  const date=document.getElementById('ses-date').value;
+  if(!subj){showToast('⚠️','اختر المادة أولاً','','warn');return;}
+  const presentList=Object.values(attendance).filter(a=>a.present);
+  const presentIds=new Set(presentList.map(r=>r.id));
+  const absentList=enrolledStudents.filter(s=>!presentIds.has(s.studentId)).map(s=>({
+    id:s.studentId,name:s.name,dept:s.dept||'',stage:s.stage||'',
+    subjects:(s.subjects||[]).join(' - '),time:'—',present:false}));
+  const allRecords=[...presentList,...absentList];
+  try{
+    await window._addDoc(window._col('sessions'),{
+      teacherName:teacher.name,teacherDept:teacher.dept,sessionName:subj,date,
+      records:allRecords,presentCount:presentList.length,totalCount:allRecords.length,
+      createdAt:window._Timestamp.now()});
+    sessions.unshift({teacherName:teacher.name,teacherDept:teacher.dept,sessionName:subj,date,
+      records:allRecords,presentCount:presentList.length,totalCount:allRecords.length});
+    showToast('💾','تم الحفظ',subj+' — '+presentList.length+' حاضر من '+allRecords.length,'success');
+  }catch(e){showToast('❌','خطأ',e.message,'error');}
+}
+
+async function loadMySessions(){
+  if(!window._db||!teacher)return;
+  try{
+    const snap=await window._getDocs(window._col('sessions'));
+    sessions=[];
+    snap.forEach(d=>{const s={id:d.id,...d.data()};if(s.teacherName===teacher.name&&s.teacherDept===teacher.dept)sessions.push(s);});
+    sessions.sort((a,b)=>(b.createdAt?.seconds||0)-(a.createdAt?.seconds||0));
+  }catch(e){console.warn(e);}
+}
+
+function renderAttendance(){
+  const el=document.getElementById('att-list');
+  const present=Object.values(attendance).filter(a=>a.present);
+  const presentIds=new Set(present.map(r=>r.id));
+  const absent=enrolledStudents.filter(s=>!presentIds.has(s.studentId));
+  if(!present.length&&!absent.length){el.innerHTML='<div class="empty"><div class="ei">📭</div>لا يوجد سجل بعد</div>';return;}
+  el.innerHTML=
+    present.map(r=>`<div class="att-item present"><div><div class="an">${r.name}</div><div class="am">${r.id} • ${r.stage||'—'} • ${r.time}</div></div><span class="badge badge-p">✔ حاضر</span></div>`).join('')+
+    absent.map(s=>`<div class="att-item absent"><div><div class="an">${s.name}</div><div class="am">${s.studentId} • ${s.stage||'—'}</div></div><span class="badge badge-a">✗ غائب</span></div>`).join('');
+}
+
+function renderSessions(){
+  const el=document.getElementById('ses-list');
+  if(!sessions.length){
+    loadMySessions().then(()=>{
+      if(!sessions.length)el.innerHTML='<div class="empty"><div class="ei">🗂</div>لا توجد حصص محفوظة</div>';
+      else renderSessions();
+    });return;
+  }
+  el.innerHTML=sessions.map((s,i)=>{
+    const pct=s.totalCount?Math.round(s.presentCount/s.totalCount*100):0;
+    return`<div class="ses-item"><div class="st">${s.sessionName}</div><div class="sm">${s.date} • ${s.teacherDept}</div><div class="ses-bar"><div class="fill" style="width:${pct}%"></div></div><div class="ses-footer"><span style="font-size:12px;color:var(--muted)">حاضر ${s.presentCount}/${s.totalCount} (${pct}%)</span><button class="btn btn-dim" style="padding:5px 10px;font-size:12px" onclick="exportExcel(${i})">📊 Excel</button></div></div>`;
+  }).join('');
+}
+
+function exportCurrentExcel(){
+  const subj=document.getElementById('ses-subject').value||'حصة';
+  const date=document.getElementById('ses-date').value;
+  const present=Object.values(attendance).filter(a=>a.present);
+  const presentIds=new Set(present.map(r=>r.id));
+  const absent=enrolledStudents.filter(s=>!presentIds.has(s.studentId))
+    .map(s=>({name:s.name,id:s.studentId,stage:s.stage||'',subjects:(s.subjects||[]).join(' - '),time:'—',present:false}));
+  buildExcel({teacherName:teacher.name,teacherDept:teacher.dept,sessionName:subj,date,
+    presentCount:present.length,totalCount:present.length+absent.length,records:[...present,...absent]});
+}
+
+function exportExcel(i){buildExcel(sessions[i]);}
+
+function buildExcel(s){
+  if(!s||!s.records)return;
+  const present=s.records.filter(r=>r.present);
+  const absent=s.records.filter(r=>!r.present);
+  const rows=[['كشف الحضور'],['الأستاذ:',s.teacherName,'القسم:',s.teacherDept],
+    ['المادة:',s.sessionName,'التاريخ:',s.date],['الحاضرون:',s.presentCount,'المجموع:',s.totalCount],[],
+    ['#','الاسم','الرقم الجامعي','المرحلة','المواد','وقت الحضور','الحالة']];
+  present.forEach((r,n)=>rows.push([n+1,r.name,r.id,r.stage||'—',r.subjects||'—',r.time,'حاضر ✅']));
+  absent.forEach((r,n)=>rows.push([present.length+n+1,r.name,r.id,r.stage||'—',r.subjects||'—','—','غائب ❌']));
+  const wb=XLSX.utils.book_new();
+  const ws=XLSX.utils.aoa_to_sheet(rows);
+  ws['!cols']=[{wch:4},{wch:22},{wch:14},{wch:14},{wch:22},{wch:10},{wch:10}];
+  XLSX.utils.book_append_sheet(wb,ws,'الحضور');
+  XLSX.writeFile(wb,'حضور-'+s.sessionName+'-'+s.date+'.xlsx');
+}
+
+let tt;
+function showToast(icon,name,info,type){
+  const el=document.getElementById('toast');
+  document.getElementById('ti').textContent=icon;
+  document.getElementById('tn').textContent=name;
+  document.getElementById('tm').textContent=info;
+  el.className='toast show '+type;
+  clearTimeout(tt);
+  tt=setTimeout(()=>el.className='toast',3000);
+}
+
+updateStats();
+</script>
+</body>
+</html>
