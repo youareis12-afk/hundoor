@@ -1,0 +1,545 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>لوحة الإدارة</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700;900&display=swap');
+:root{--bg:#0d1117;--surface:#161b22;--surface2:#1c2128;--border:#30363d;--green:#3fb950;--green-dim:rgba(63,185,80,0.12);--red:#f85149;--red-dim:rgba(248,81,73,0.12);--gold:#d29922;--gold-dim:rgba(210,153,34,0.12);--blue:#58a6ff;--blue-dim:rgba(88,166,255,0.12);--text:#e6edf3;--muted:#7d8590}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Tajawal',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;padding:20px 14px}
+
+#login-screen{max-width:360px;margin:80px auto;background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:32px 24px;text-align:center}
+#login-screen .icon{font-size:44px;margin-bottom:12px}
+#login-screen h2{font-size:20px;font-weight:900;margin-bottom:6px}
+#login-screen p{font-size:13px;color:var(--muted);margin-bottom:24px}
+#login-err{color:var(--red);font-size:13px;margin-bottom:10px;min-height:18px}
+
+header{max-width:680px;margin:0 auto 24px;display:flex;align-items:center;justify-content:space-between}
+header h1{font-size:20px;font-weight:900}
+header p{font-size:12px;color:var(--muted);margin-top:2px}
+
+.tabs{max-width:680px;margin:0 auto 20px;display:flex;background:var(--surface);border:1px solid var(--border);border-radius:10px;overflow:hidden}
+.tab{flex:1;padding:11px 8px;background:transparent;border:none;color:var(--muted);font-family:'Tajawal',sans-serif;font-size:13px;font-weight:700;cursor:pointer;transition:all .2s;border-left:1px solid var(--border)}
+.tab:last-child{border-left:none}
+.tab.active{color:var(--text);background:var(--surface2)}
+
+.main{max-width:680px;margin:0 auto}
+.pane{display:none}.pane.active{display:block}
+
+.section{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:20px 18px;margin-bottom:16px}
+.section h3{font-size:13px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:16px}
+
+.add-row{display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap}
+.add-row input,.add-row select{flex:1;min-width:140px;padding:10px 13px;background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:'Tajawal',sans-serif;font-size:14px;outline:none;transition:border-color .2s}
+.add-row input:focus,.add-row select:focus{border-color:var(--blue)}
+.add-row select option{background:var(--bg)}
+
+.btn{padding:10px 18px;border:none;border-radius:8px;font-family:'Tajawal',sans-serif;font-size:14px;font-weight:700;cursor:pointer;transition:all .2s;white-space:nowrap}
+.btn:active{transform:scale(.97)}
+.btn-green{background:var(--green);color:#000}
+.btn-red{background:none;border:1px solid var(--red);color:var(--red);padding:5px 10px;font-size:12px}
+.btn-blue{background:var(--blue);color:#000}
+.btn-full{width:100%}
+.btn-dim{background:var(--surface2);color:var(--muted);border:1px solid var(--border)}
+.btn-logout{background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:6px 14px;color:var(--muted);font-family:'Tajawal',sans-serif;font-size:12px;font-weight:700;cursor:pointer}
+
+.chip-list{display:flex;flex-wrap:wrap;gap:8px}
+.chip{display:inline-flex;align-items:center;gap:6px;background:var(--surface2);border:1px solid var(--border);border-radius:100px;padding:5px 12px;font-size:13px}
+.chip .del{background:none;border:none;color:var(--muted);cursor:pointer;font-size:14px;line-height:1;padding:0}
+.chip .del:hover{color:var(--red)}
+
+.item-list{display:flex;flex-direction:column;gap:8px}
+.item{display:flex;align-items:center;justify-content:space-between;background:var(--surface2);border:1px solid var(--border);border-radius:9px;padding:10px 14px}
+.item .item-name{font-weight:700;font-size:14px}
+.item .item-sub{font-size:11px;color:var(--muted);margin-top:2px}
+
+.stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin-bottom:20px}
+.stat-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:16px;text-align:center}
+.stat-card .val{font-size:28px;font-weight:900;color:var(--blue)}
+.stat-card .lbl{font-size:12px;color:var(--muted);margin-top:4px}
+
+.att-table{width:100%;border-collapse:collapse;font-size:13px}
+.att-table th{background:var(--surface2);padding:8px 12px;text-align:right;font-weight:700;color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.4px}
+.att-table td{padding:9px 12px;border-bottom:1px solid var(--border)}
+.att-table tr:last-child td{border-bottom:none}
+.badge-p{background:var(--green-dim);color:var(--green);padding:2px 8px;border-radius:100px;font-size:11px;font-weight:700}
+.badge-a{background:var(--red-dim);color:var(--red);padding:2px 8px;border-radius:100px;font-size:11px;font-weight:700}
+
+.toast{position:fixed;top:20px;left:50%;transform:translateX(-50%) translateY(-80px);background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:12px 20px;text-align:center;min-width:240px;z-index:999;transition:transform .35s cubic-bezier(.34,1.56,.64,1);font-size:14px;font-weight:700}
+.toast.show{transform:translateX(-50%) translateY(0)}
+.toast.ok{border-color:var(--green);color:var(--green)}
+.toast.err{border-color:var(--red);color:var(--red)}
+
+.empty{text-align:center;padding:32px;color:var(--muted);font-size:13px}
+.loading{text-align:center;padding:24px;color:var(--muted);font-size:13px}
+</style>
+</head>
+<body>
+
+<!-- تسجيل دخول -->
+<div id="login-screen">
+  <div class="icon">🛡️</div>
+  <h2>لوحة الإدارة</h2>
+  <p>للأساتذة المسؤولين فقط</p>
+  <div style="margin-bottom:14px;text-align:right">
+    <label style="font-size:11px;color:var(--muted);font-weight:700;display:block;margin-bottom:5px;text-transform:uppercase;letter-spacing:.4px">كلمة المرور</label>
+    <input type="password" id="l-pass" placeholder="••••••••" style="width:100%;padding:11px 13px;background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:'Tajawal',sans-serif;font-size:15px;outline:none" onkeydown="if(event.key==='Enter')doLogin()">
+  </div>
+  <div id="login-err"></div>
+  <button class="btn btn-blue btn-full" onclick="doLogin()">دخول ▶</button>
+  <p style="margin-top:14px;font-size:11px;color:var(--muted)">كلمة المرور الافتراضية: admin123</p>
+</div>
+
+<!-- التطبيق -->
+<div id="app" style="display:none">
+  <header>
+    <div>
+      <h1>🛡️ لوحة الإدارة</h1>
+      <p>إدارة الأقسام والمواد والمراحل</p>
+    </div>
+    <button class="btn-logout" onclick="doLogout()">خروج</button>
+  </header>
+
+  <div class="tabs">
+    <button class="tab active" onclick="stab('depts',this)">🏛 الأقسام</button>
+    <button class="tab" onclick="stab('subjects',this)">📚 المواد</button>
+    <button class="tab" onclick="stab('stages',this)">🎓 المراحل</button>
+    <button class="tab" onclick="stab('students',this)">👥 الطلاب</button>
+    <button class="tab" onclick="stab('sessions',this)">📋 الحضور</button>
+  </div>
+
+  <div class="main">
+
+    <!-- أقسام -->
+    <div class="pane active" id="pane-depts">
+      <div class="section">
+        <h3>➕ إضافة قسم جديد</h3>
+        <div class="add-row">
+          <input type="text" id="dept-name" placeholder="اسم القسم مثال: قسم الحاسبات">
+          <input type="text" id="dept-college" placeholder="الكلية مثال: كلية الهندسة">
+          <button class="btn btn-green" onclick="addDept()">إضافة</button>
+        </div>
+      </div>
+      <div class="section">
+        <h3>📋 الأقسام المسجلة</h3>
+        <div id="depts-list"><div class="loading">⏳ جاري التحميل...</div></div>
+      </div>
+    </div>
+
+    <!-- مواد -->
+    <div class="pane" id="pane-subjects">
+      <div class="section">
+        <h3>➕ إضافة مادة</h3>
+        <div class="add-row">
+          <input type="text" id="subj-name" placeholder="اسم المادة">
+          <select id="subj-dept"><option value="">-- اختر القسم --</option></select>
+          <select id="subj-stage"><option value="">-- المرحلة --</option></select>
+          <button class="btn btn-green" onclick="addSubject()">إضافة</button>
+        </div>
+      </div>
+      <div class="section">
+        <h3>📋 المواد المسجلة</h3>
+        <div id="subjects-list"><div class="loading">⏳ جاري التحميل...</div></div>
+      </div>
+    </div>
+
+    <!-- مراحل -->
+    <div class="pane" id="pane-stages">
+      <div class="section">
+        <h3>➕ إضافة مرحلة</h3>
+        <div class="add-row">
+          <input type="text" id="stage-name" placeholder="مثال: المرحلة الأولى">
+          <button class="btn btn-green" onclick="addStage()">إضافة</button>
+        </div>
+      </div>
+      <div class="section">
+        <h3>📋 المراحل المسجلة</h3>
+        <div id="stages-list"><div class="loading">⏳ جاري التحميل...</div></div>
+      </div>
+    </div>
+
+    <!-- طلاب -->
+    <div class="pane" id="pane-students">
+      <div class="section">
+        <h3>🔍 بحث وفلترة</h3>
+        <div class="add-row">
+          <select id="filter-dept" onchange="loadStudents()"><option value="">كل الأقسام</option></select>
+          <select id="filter-stage" onchange="loadStudents()"><option value="">كل المراحل</option></select>
+          <input type="text" id="filter-name" placeholder="بحث بالاسم..." oninput="filterStudents()">
+        </div>
+      </div>
+      <div class="section">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+          <h3 style="margin-bottom:0">👥 الطلاب المسجلون — <span id="stu-count" style="color:var(--blue)">0</span></h3>
+          <button class="btn btn-dim" style="font-size:12px;padding:6px 12px" onclick="exportStudentsExcel()">📊 تصدير Excel</button>
+        </div>
+        <div id="students-list"><div class="loading">⏳ جاري التحميل...</div></div>
+      </div>
+    </div>
+
+    <!-- حضور -->
+    <div class="pane" id="pane-sessions">
+      <div class="section">
+        <h3>🔍 فلترة السجلات</h3>
+        <div class="add-row">
+          <select id="ses-dept-filter" onchange="loadAllSessions()"><option value="">كل الأقسام</option></select>
+          <input type="date" id="ses-date-filter" onchange="loadAllSessions()">
+        </div>
+      </div>
+      <div class="section">
+        <h3>📋 سجلات الحضور الكاملة</h3>
+        <div id="sessions-list"><div class="loading">⏳ جاري التحميل...</div></div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc, query, where, orderBy, Timestamp }
+  from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyAIejJylMFIpsI4E4x8i_nv5KUVmdc5IMY",
+  authDomain: "hudoor-uni.firebaseapp.com",
+  projectId: "hudoor-uni",
+  storageBucket: "hudoor-uni.firebasestorage.app",
+  messagingSenderId: "847527072323",
+  appId: "1:847527072323:web:f90ec5ec5d07de5d3b3af6"
+};
+
+const app = initializeApp(firebaseConfig);
+const db  = getFirestore(app);
+
+window._db        = db;
+window._col       = (n) => collection(db, n);
+window._addDoc    = addDoc;
+window._getDocs   = getDocs;
+window._deleteDoc = deleteDoc;
+window._doc       = doc;
+window._query     = query;
+window._where     = where;
+window._orderBy   = orderBy;
+window._Timestamp = Timestamp;
+window.dispatchEvent(new Event('fb-ready'));
+</script>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script>
+const ADMIN_PASS = 'admin123';
+let depts=[], stages=[], subjects=[], students=[], allStudents=[];
+
+window.addEventListener('fb-ready', () => { if(document.getElementById('app').style.display!=='none') initData(); });
+
+function doLogin(){
+  const p = document.getElementById('l-pass').value;
+  if(p !== ADMIN_PASS){ document.getElementById('login-err').textContent='كلمة المرور غلط'; return; }
+  document.getElementById('login-screen').style.display='none';
+  document.getElementById('app').style.display='block';
+  initData();
+}
+function doLogout(){
+  document.getElementById('login-screen').style.display='block';
+  document.getElementById('app').style.display='none';
+  document.getElementById('l-pass').value='';
+}
+
+async function initData(){
+  await Promise.all([loadDepts(), loadStages()]);
+  await loadSubjects();
+}
+
+function stab(name, btn){
+  document.querySelectorAll('.pane').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(b=>b.classList.remove('active'));
+  document.getElementById('pane-'+name).classList.add('active');
+  btn.classList.add('active');
+  if(name==='students') loadStudents();
+  if(name==='sessions') loadAllSessions();
+}
+
+// ── DEPTS ─────────────────────────────────────────────────
+async function loadDepts(){
+  if(!window._db) return;
+  const snap = await window._getDocs(window._col('depts'));
+  depts = [];
+  snap.forEach(d => depts.push({id:d.id, ...d.data()}));
+  depts.sort((a,b)=>a.name.localeCompare(b.name,'ar'));
+  renderDepts();
+  populateDeptSelects();
+}
+
+function renderDepts(){
+  const el = document.getElementById('depts-list');
+  if(!depts.length){ el.innerHTML='<div class="empty">لا توجد أقسام بعد</div>'; return; }
+  el.innerHTML = `<div class="item-list">${depts.map(d=>`
+    <div class="item">
+      <div><div class="item-name">🏛 ${d.name}</div><div class="item-sub">${d.college||''}</div></div>
+      <button class="btn btn-red" onclick="delDept('${d.id}','${d.name}')">حذف</button>
+    </div>`).join('')}</div>`;
+}
+
+async function addDept(){
+  const name    = document.getElementById('dept-name').value.trim();
+  const college = document.getElementById('dept-college').value.trim();
+  if(!name){ toast('أدخل اسم القسم','err'); return; }
+  if(depts.find(d=>d.name===name)){ toast('القسم موجود مسبقاً','err'); return; }
+  // أضف فوراً على الشاشة
+  const tmpId = 'tmp_'+Date.now();
+  depts.push({id:tmpId, name, college});
+  depts.sort((a,b)=>a.name.localeCompare(b.name,'ar'));
+  renderDepts(); populateDeptSelects();
+  document.getElementById('dept-name').value='';
+  document.getElementById('dept-college').value='';
+  toast('✅ تمت إضافة القسم','ok');
+  // احفظ بالخلفية
+  const ref = await window._addDoc(window._col('depts'), {name, college, createdAt: window._Timestamp.now()});
+  const idx = depts.findIndex(d=>d.id===tmpId);
+  if(idx!==-1) depts[idx].id = ref.id;
+}
+
+async function delDept(id, name){
+  if(!confirm(`حذف قسم "${name}"؟`)) return;
+  await window._deleteDoc(window._doc(window._db,'depts',id));
+  await loadDepts();
+  toast('تم الحذف','ok');
+}
+
+// ── STAGES ───────────────────────────────────────────────
+async function loadStages(){
+  if(!window._db) return;
+  const snap = await window._getDocs(window._col('stages'));
+  stages = [];
+  snap.forEach(d => stages.push({id:d.id, ...d.data()}));
+  renderStages();
+  populateStageSelects();
+}
+
+function renderStages(){
+  const el = document.getElementById('stages-list');
+  if(!stages.length){ el.innerHTML='<div class="empty">لا توجد مراحل بعد</div>'; return; }
+  el.innerHTML = `<div class="chip-list">${stages.map(s=>`
+    <div class="chip">🎓 ${s.name}<button class="del" onclick="delStage('${s.id}')">✕</button></div>`).join('')}</div>`;
+}
+
+async function addStage(){
+  const name = document.getElementById('stage-name').value.trim();
+  if(!name){ toast('أدخل اسم المرحلة','err'); return; }
+  if(stages.find(s=>s.name===name)){ toast('المرحلة موجودة','err'); return; }
+  const tmpId = 'tmp_'+Date.now();
+  stages.push({id:tmpId, name});
+  renderStages(); populateStageSelects();
+  document.getElementById('stage-name').value='';
+  toast('✅ تمت إضافة المرحلة','ok');
+  const ref = await window._addDoc(window._col('stages'), {name, createdAt: window._Timestamp.now()});
+  const idx = stages.findIndex(s=>s.id===tmpId);
+  if(idx!==-1) stages[idx].id = ref.id;
+}
+
+async function delStage(id){
+  if(!confirm('حذف المرحلة؟')) return;
+  await window._deleteDoc(window._doc(window._db,'stages',id));
+  await loadStages();
+  toast('تم الحذف','ok');
+}
+
+// ── SUBJECTS ─────────────────────────────────────────────
+async function loadSubjects(){
+  if(!window._db) return;
+  const snap = await window._getDocs(window._col('subjects'));
+  subjects = [];
+  snap.forEach(d => subjects.push({id:d.id, ...d.data()}));
+  renderSubjects();
+}
+
+function renderSubjects(){
+  const el = document.getElementById('subjects-list');
+  if(!subjects.length){ el.innerHTML='<div class="empty">لا توجد مواد بعد</div>'; return; }
+  el.innerHTML = `<div class="item-list">${subjects.map(s=>`
+    <div class="item">
+      <div><div class="item-name">📚 ${s.name}</div><div class="item-sub">${s.dept||''} • ${s.stage||''}</div></div>
+      <button class="btn btn-red" onclick="delSubject('${s.id}')">حذف</button>
+    </div>`).join('')}</div>`;
+}
+
+async function addSubject(){
+  const name  = document.getElementById('subj-name').value.trim();
+  const dept  = document.getElementById('subj-dept').value;
+  const stage = document.getElementById('subj-stage').value;
+  if(!name||!dept||!stage){ toast('أكمل جميع الحقول','err'); return; }
+  const tmpId = 'tmp_'+Date.now();
+  subjects.push({id:tmpId, name, dept, stage});
+  renderSubjects();
+  document.getElementById('subj-name').value='';
+  toast('✅ تمت إضافة المادة','ok');
+  const ref = await window._addDoc(window._col('subjects'), {name, dept, stage, createdAt: window._Timestamp.now()});
+  const idx = subjects.findIndex(s=>s.id===tmpId);
+  if(idx!==-1) subjects[idx].id = ref.id;
+}
+
+async function delSubject(id){
+  if(!confirm('حذف المادة؟')) return;
+  await window._deleteDoc(window._doc(window._db,'subjects',id));
+  await loadSubjects();
+  toast('تم الحذف','ok');
+}
+
+// ── POPULATE SELECTS ─────────────────────────────────────
+function populateDeptSelects(){
+  const opts = depts.map(d=>`<option value="${d.name}">${d.name}</option>`).join('');
+  ['subj-dept','filter-dept','ses-dept-filter'].forEach(id=>{
+    const el = document.getElementById(id);
+    if(!el) return;
+    const first = el.options[0].outerHTML;
+    el.innerHTML = first + opts;
+  });
+}
+
+function populateStageSelects(){
+  const opts = stages.map(s=>`<option value="${s.name}">${s.name}</option>`).join('');
+  ['subj-stage','filter-stage'].forEach(id=>{
+    const el = document.getElementById(id);
+    if(!el) return;
+    const first = el.options[0].outerHTML;
+    el.innerHTML = first + opts;
+  });
+}
+
+// ── STUDENTS ─────────────────────────────────────────────
+async function loadStudents(){
+  if(!window._db) return;
+  document.getElementById('students-list').innerHTML = '<div class="loading">⏳ جاري التحميل...</div>';
+  const snap = await window._getDocs(window._col('students'));
+  allStudents = [];
+  snap.forEach(d => allStudents.push({id:d.id, ...d.data()}));
+  allStudents.sort((a,b)=>a.name.localeCompare(b.name,'ar'));
+  filterStudents();
+}
+
+function filterStudents(){
+  const dept  = document.getElementById('filter-dept').value;
+  const stage = document.getElementById('filter-stage').value;
+  const name  = document.getElementById('filter-name').value.trim().toLowerCase();
+  students = allStudents.filter(s=>
+    (!dept  || s.dept===dept) &&
+    (!stage || s.stage===stage) &&
+    (!name  || s.name.toLowerCase().includes(name))
+  );
+  document.getElementById('stu-count').textContent = students.length;
+  renderStudents();
+}
+
+function renderStudents(){
+  const el = document.getElementById('students-list');
+  if(!students.length){ el.innerHTML='<div class="empty">لا يوجد طلاب</div>'; return; }
+  el.innerHTML = `
+    <div style="overflow-x:auto">
+    <table class="att-table">
+      <thead><tr>
+        <th>#</th><th>الاسم</th><th>الرقم الجامعي</th><th>القسم</th><th>المرحلة</th><th>المواد</th><th></th>
+      </tr></thead>
+      <tbody>
+        ${students.map((s,i)=>`<tr>
+          <td>${i+1}</td>
+          <td><b>${s.name}</b></td>
+          <td>${s.studentId||'—'}</td>
+          <td>${s.dept||'—'}</td>
+          <td>${s.stage||'—'}</td>
+          <td>${(s.subjects||[]).join(' • ')||'—'}</td>
+          <td><button class="btn btn-red" onclick="delStudent('${s.id}','${s.name}')">حذف</button></td>
+        </tr>`).join('')}
+      </tbody>
+    </table></div>`;
+}
+
+async function delStudent(id, name){
+  if(!confirm(`حذف الطالب "${name}"؟`)) return;
+  await window._deleteDoc(window._doc(window._db,'students',id));
+  await loadStudents();
+  toast('تم الحذف','ok');
+}
+
+function exportStudentsExcel(){
+  if(!students.length){ toast('لا يوجد طلاب','err'); return; }
+  const rows = [['#','الاسم','الرقم الجامعي','القسم','المرحلة','المواد']];
+  students.forEach((s,i)=>rows.push([i+1, s.name, s.studentId||'', s.dept||'', s.stage||'', (s.subjects||[]).join(' - ')]));
+  const wb = XLSX.utils.book_new();
+  const ws = XLSX.utils.aoa_to_sheet(rows);
+  ws['!cols']=[{wch:4},{wch:22},{wch:14},{wch:20},{wch:14},{wch:30}];
+  XLSX.utils.book_append_sheet(wb, ws, 'الطلاب');
+  XLSX.writeFile(wb, `طلاب-${new Date().toLocaleDateString('ar-IQ')}.xlsx`);
+}
+
+// ── SESSIONS ─────────────────────────────────────────────
+async function loadAllSessions(){
+  if(!window._db) return;
+  document.getElementById('sessions-list').innerHTML='<div class="loading">⏳ جاري التحميل...</div>';
+  const snap = await window._getDocs(window._col('sessions'));
+  let all = [];
+  snap.forEach(d => all.push({id:d.id,...d.data()}));
+
+  const deptF = document.getElementById('ses-dept-filter').value;
+  const dateF = document.getElementById('ses-date-filter').value;
+  if(deptF) all = all.filter(s=>(s.teacherDept||'').includes(deptF));
+  if(dateF) all = all.filter(s=>s.date===dateF);
+  all.sort((a,b)=>(b.createdAt?.seconds||0)-(a.createdAt?.seconds||0));
+
+  const el = document.getElementById('sessions-list');
+  if(!all.length){ el.innerHTML='<div class="empty">لا توجد سجلات</div>'; return; }
+  el.innerHTML = all.map((s,i)=>{
+    const pct = s.totalCount ? Math.round(s.presentCount/s.totalCount*100) : 0;
+    return `
+    <div style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:14px 16px;margin-bottom:10px">
+      <div style="font-weight:700;font-size:15px">${s.sessionName||'—'}</div>
+      <div style="font-size:12px;color:var(--muted);margin-top:3px">${s.teacherName||'—'} • ${s.teacherDept||'—'} • ${s.date||'—'}</div>
+      <div style="height:6px;border-radius:3px;background:var(--border);margin-top:10px;overflow:hidden">
+        <div style="height:100%;width:${pct}%;background:var(--green)"></div>
+      </div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-top:8px">
+        <span style="font-size:12px;color:var(--muted)">حاضر: ${s.presentCount||0} من ${s.totalCount||0} (${pct}%)</span>
+        <button class="btn btn-dim" style="font-size:12px;padding:5px 10px" onclick="exportSessionExcel(${i}, window._allSessions)">📊 Excel</button>
+      </div>
+    </div>`;
+  }).join('');
+  window._allSessions = all;
+}
+
+function exportSessionExcel(i, all){
+  const s = all[i];
+  if(!s||!s.records) return;
+  const present = s.records.filter(r=>r.present);
+  const absent  = s.records.filter(r=>!r.present);
+  const rows = [
+    ['كشف الحضور'],
+    ['الأستاذ:', s.teacherName, 'القسم:', s.teacherDept],
+    ['المادة:', s.sessionName, 'التاريخ:', s.date],
+    ['الحاضرون:', s.presentCount, 'المجموع:', s.totalCount],
+    [],
+    ['#','الاسم','الرقم','الصف','المادة','الوقت','الحالة']
+  ];
+  present.forEach((r,n)=>rows.push([n+1,r.name,r.id,r.class||'—',r.subject||'—',r.time,'حاضر ✅']));
+  absent.forEach((r,n)=>rows.push([present.length+n+1,r.name,r.id,r.class||'—',r.subject||'—','—','غائب ❌']));
+  const wb = XLSX.utils.book_new();
+  const ws = XLSX.utils.aoa_to_sheet(rows);
+  ws['!cols']=[{wch:4},{wch:22},{wch:12},{wch:16},{wch:16},{wch:10},{wch:10}];
+  XLSX.utils.book_append_sheet(wb,ws,'الحضور');
+  XLSX.writeFile(wb,`حضور-${s.sessionName}-${s.date}.xlsx`);
+}
+
+// ── TOAST ────────────────────────────────────────────────
+let tt;
+function toast(msg, type){
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.className = `toast show ${type||'ok'}`;
+  clearTimeout(tt);
+  tt = setTimeout(()=>el.className='toast', 2500);
+}
+</script>
+</body>
+</html>
