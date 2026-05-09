@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>بطاقة الطالب</title>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/qr-creator/1.0.0/qr-creator.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700;900&display=swap');
 :root{--bg:#0d1117;--surface:#161b22;--surface2:#1c2128;--border:#30363d;--green:#3fb950;--green-dim:rgba(63,185,80,0.12);--red:#f85149;--blue:#58a6ff;--gold:#d29922;--text:#e6edf3;--muted:#7d8590}
@@ -80,6 +80,8 @@ body{font-family:'Tajawal',sans-serif;background:var(--bg);color:var(--text);min
 .step{flex:1;height:4px;border-radius:2px;background:var(--border);transition:background .3s}
 .step.done{background:var(--green)}
 .step.active{background:var(--blue)}
+#qr-modal{animation:fadeIn .2s ease}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
 </style>
 </head>
 <body>
@@ -160,21 +162,33 @@ body{font-family:'Tajawal',sans-serif;background:var(--bg);color:var(--text);min
 
   </div>
 
-  <!-- بطاقة QR -->
-  <div class="qr-card" id="qr-card">
-    <div class="qr-title">بطاقة الحضور الإلكترونية</div>
-    <div class="qr-name" id="qr-name">—</div>
-    <div class="qr-info" id="qr-info">—</div>
-    <div class="qr-frame"><canvas id="qr-canvas"></canvas></div>
-    <div class="qr-id" id="qr-id">—</div>
-    <div class="qr-hint">
-      📲 اعرض هذا الرمز للأستاذ عند الحضور<br>
-      ✅ يعمل بدون إنترنت في أي وقت<br>
-      🔐 جميع معلوماتك محفوظة داخل الباركود
-    </div>
-    <div class="btn-row">
-      <button class="btn btn-blue" onclick="downloadQR()">📥 تحميل</button>
-      <button class="btn btn-dim"  onclick="editInfo()">✏️ تعديل</button>
+  <!-- زر عرض البطاقة (يظهر بعد التسجيل) -->
+  <div id="show-qr-btn" style="display:none;margin-top:16px">
+    <button class="btn btn-green" onclick="openModal()" style="font-size:18px;padding:16px">
+      📱 عرض بطاقة الحضور
+    </button>
+  </div>
+
+  <!-- المودال -->
+  <div id="qr-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:100;overflow-y:auto;padding:20px 14px">
+    <div style="max-width:380px;margin:0 auto;background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:24px 18px;text-align:center">
+      <button onclick="closeModal()" style="float:left;background:none;border:none;color:var(--muted);font-size:22px;cursor:pointer;line-height:1">✕</button>
+      <div style="clear:both;margin-bottom:6px;font-size:11px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.5px">بطاقة الحضور الإلكترونية</div>
+      <div style="font-size:22px;font-weight:900;margin-bottom:4px" id="qr-name">—</div>
+      <div style="font-size:13px;color:var(--muted);margin-bottom:16px;line-height:1.8" id="qr-info">—</div>
+      <div style="background:#fff;border-radius:12px;padding:14px;display:inline-block;margin-bottom:14px;box-shadow:0 4px 20px rgba(0,0,0,.3)">
+        <div id="qr-canvas"></div>
+      </div>
+      <div style="display:block;background:var(--surface2);border:1px solid var(--border);border-radius:100px;padding:5px 16px;font-size:12px;color:var(--muted);margin-bottom:14px;font-family:monospace" id="qr-id">—</div>
+      <div style="font-size:12px;color:var(--muted);line-height:1.8;margin-bottom:16px;background:var(--surface2);border-radius:8px;padding:12px">
+        📲 اعرض هذا الرمز للأستاذ عند الحضور<br>
+        ✅ يعمل بدون إنترنت في أي وقت<br>
+        🔐 جميع معلوماتك محفوظة داخل الباركود
+      </div>
+      <div style="display:flex;gap:10px">
+        <button class="btn btn-blue" style="flex:1" onclick="downloadQR()">📥 تحميل</button>
+        <button class="btn btn-dim"  style="flex:1" onclick="closeModal();editInfo()">✏️ تعديل</button>
+      </div>
     </div>
   </div>
 
@@ -379,16 +393,20 @@ async function register(){
   }
 }
 
+function openModal(){ document.getElementById('qr-modal').style.display='block'; document.body.style.overflow='hidden'; }
+function closeModal(){ document.getElementById('qr-modal').style.display='none'; document.body.style.overflow=''; }
+
 function showQR(student){
-  document.getElementById('form-view').style.display   = 'none';
-  document.getElementById('exist-card').style.display  = 'none';
-  document.getElementById('qr-card').classList.add('show');
+  // أظهر زر البطاقة
+  document.getElementById('show-qr-btn').style.display = 'block';
+  // افتح المودال مباشرة
+  openModal();
 
   document.getElementById('qr-name').textContent = student.name;
   document.getElementById('qr-id').textContent   = student.studentId;
   document.getElementById('qr-info').innerHTML   =
-    `${student.dept}<br>${student.stage}<br>` +
-    (student.subjects||[]).map(s=>`<span style="background:var(--surface2);border:1px solid var(--border);border-radius:4px;padding:2px 8px;font-size:11px;margin:2px;display:inline-block">${s}</span>`).join('');
+    student.dept + '<br>' + student.stage + '<br>' +
+    (student.subjects||[]).map(s=>'<span style="background:var(--surface2);border:1px solid var(--border);border-radius:4px;padding:2px 8px;font-size:11px;margin:2px;display:inline-block">'+s+'</span>').join('');
 
   // بيانات الباركود — كل المعلومات مندمجة
   const qrData = JSON.stringify({
@@ -399,18 +417,21 @@ function showQR(student){
     subjects: student.subjects || []
   });
 
-  QrCreator.render({
-    text:       qrData,
-    radius:     0.1,
-    ecLevel:    'H',
-    fill:       '#000000',
-    background: '#ffffff',
-    size:       220
-  }, document.getElementById('qr-canvas'));
+  // امسح القديم وارسم جديد
+  const container = document.getElementById('qr-canvas');
+  container.innerHTML = '';
+  new QRCode(container, {
+    text:         qrData,
+    width:        220,
+    height:       220,
+    colorDark:    '#000000',
+    colorLight:   '#ffffff',
+    correctLevel: QRCode.CorrectLevel.H
+  });
 }
 
 function showExistingQR(){
-  if(currentStudent) showQR(currentStudent);
+  if(currentStudent){ showQR(currentStudent); }
 }
 
 function newRegistration(){
@@ -419,17 +440,24 @@ function newRegistration(){
 }
 
 function editInfo(){
-  document.getElementById('qr-card').classList.remove('show');
+  closeModal(); document.getElementById('show-qr-btn').style.display='none';
   document.getElementById('form-view').style.display = 'block';
   setStep(1);
 }
 
 function downloadQR(){
-  const canvas = document.getElementById('qr-canvas');
-  const name   = currentStudent ? currentStudent.name : 'QR';
+  const container = document.getElementById('qr-canvas');
+  const name      = currentStudent ? currentStudent.name : 'QR';
+  // QRCode.js يولد canvas أو img
+  const canvas = container.querySelector('canvas');
+  const img    = container.querySelector('img');
   const link   = document.createElement('a');
-  link.download = `QR-${name}.png`;
-  link.href     = canvas.toDataURL('image/png');
+  link.download = 'QR-' + name + '.png';
+  if(canvas){
+    link.href = canvas.toDataURL('image/png');
+  } else if(img){
+    link.href = img.src;
+  }
   link.click();
 }
 
