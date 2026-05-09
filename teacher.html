@@ -306,18 +306,31 @@ function setInd(on){
   el.className='scan-status '+(on?'on':'off');
 }
 
-function onScan(data){
-  let s;
-  try{s=JSON.parse(data);}catch{s={i:data,n:data};}
-  // يدعم المفاتيح المختصرة (i,n,d,st,m) والقديمة (id,name,dept,stage,subjects)
-  const id    = s.i || s.id || s.studentId;
-  const name  = s.n || s.name || id;
-  const dept  = s.d || s.dept || '';
-  const stage = s.s || s.stage || '';
-  const subjs = s.m || s.subjects || [];
-  if(!id)return;
-  if(attendance[id]){showToast('⚠️',name,'تم تسجيل حضوره مسبقاً','warn');return;}
-  markPresent(id,name,dept,stage,subjs,true);
+async function onScan(data){
+  // الباركود يحتوي الرقم الجامعي فقط
+  let studentId = data.trim();
+  // لو كان JSON قديم خذ منه الـ id
+  try{ const p=JSON.parse(data); studentId = p.i||p.id||p.studentId||data; }catch{}
+
+  if(!studentId) return;
+  if(attendance[studentId]){ showToast('⚠️','مسجل مسبقاً',studentId,'warn'); return; }
+
+  // اجيب معلومات الطالب من Firebase
+  try{
+    const q    = window._query(window._col('students'), window._where('studentId','==',studentId));
+    const snap = await window._getDocs(q);
+    if(!snap.empty){
+      const s = snap.docs[0].data();
+      markPresent(studentId, s.name, s.dept||'', s.stage||'', s.subjects||[], true);
+    } else {
+      // رقم ما موجود بالقاعدة — سجله كضيف
+      markPresent(studentId, studentId, '', '', [], true);
+      showToast('⚠️','رقم غير مسجل',studentId,'warn');
+    }
+  } catch(e){
+    // لو ما في نت — سجل الرقم بدون معلومات
+    markPresent(studentId, studentId, '', '', [], true);
+  }
 }
 
 async function manualAttend(){
