@@ -409,24 +409,16 @@ function showQR(student){
     (student.subjects||[]).map(s=>'<span style="background:var(--surface2);border:1px solid var(--border);border-radius:4px;padding:2px 8px;font-size:11px;margin:2px;display:inline-block">'+s+'</span>').join('');
 
   // بيانات الباركود — كل المعلومات مندمجة
-  // نختصر المفاتيح عشان ما يطغى الباركود
-  const qrData = JSON.stringify({
-    i: student.studentId,
-    n: student.name,
-    d: student.dept,
-    s: student.stage,
-    m: (student.subjects || []).slice(0,5)
-  });
-
+  // الباركود يحتوي الرقم الجامعي فقط — الأستاذ يجيب باقي المعلومات من Firebase
   const container = document.getElementById('qr-canvas');
   container.innerHTML = '';
   new QRCode(container, {
-    text:         qrData,
+    text:         student.studentId,
     width:        220,
     height:       220,
     colorDark:    '#000000',
     colorLight:   '#ffffff',
-    correctLevel: QRCode.CorrectLevel.M
+    correctLevel: QRCode.CorrectLevel.H
   });
 }
 
