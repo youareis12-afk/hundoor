@@ -307,12 +307,17 @@ function setInd(on){
 }
 
 function onScan(data){
-  let student;
-  try{student=JSON.parse(data);}catch{student={id:data,name:data,dept:'',stage:'',subjects:[]};}
-  const id=student.id||student.studentId;
+  let s;
+  try{s=JSON.parse(data);}catch{s={i:data,n:data};}
+  // يدعم المفاتيح المختصرة (i,n,d,st,m) والقديمة (id,name,dept,stage,subjects)
+  const id    = s.i || s.id || s.studentId;
+  const name  = s.n || s.name || id;
+  const dept  = s.d || s.dept || '';
+  const stage = s.s || s.stage || '';
+  const subjs = s.m || s.subjects || [];
   if(!id)return;
-  if(attendance[id]){showToast('⚠️',student.name||id,'تم تسجيل حضوره مسبقاً','warn');return;}
-  markPresent(id,student.name||id,student.dept||'',student.stage||'',student.subjects||[],true);
+  if(attendance[id]){showToast('⚠️',name,'تم تسجيل حضوره مسبقاً','warn');return;}
+  markPresent(id,name,dept,stage,subjs,true);
 }
 
 async function manualAttend(){
